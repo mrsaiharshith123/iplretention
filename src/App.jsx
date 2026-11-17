@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState,useCallback} from 'react'
 import {supabase} from './supabase'
+import MyPrediction from './components/MyPrediction'
 
 const STORAGE_KEY = 'csk2027_participant'
 const kind = r => /wicket/i.test(r) ? 'Wicketkeeper' : /all/i.test(r) ? 'All-rounder' : /bowl/i.test(r) ? 'Bowler' : 'Batter'
@@ -54,7 +55,7 @@ function NameModal({onCancel,onSaved,toast}){
   </div>)
 }
 
-function Predict({identity,setIdentity,settings,toast}){
+function Predict({identity,setIdentity,settings,toast,onSubmitted,hasPrediction,goMine}){
  const [players,setPlayers] = useState(null)
  const [picks,setPicks] = useState({})
  const [q,setQ] = useState(''), [f,setF] = useState('All')
@@ -81,12 +82,12 @@ function Predict({identity,setIdentity,settings,toast}){
 
  if(!players || checking) return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({length:6}).map((_,i)=><div key={i} className="rounded-xl bg-card p-4 h-56 animate-pulse"/>)}</div>
 
- if(mine){
-  const retained = mine.filter(m=>m.decision==='retain'), released = mine.filter(m=>m.decision==='release')
+ if(mine || hasPrediction){
   return (
    <div className="bg-card rounded-xl p-6 space-y-3">
-    <h3 className="text-xl font-extrabold">Thanks, {identity.name} — you're in.</h3>
-    <p className="text-muted">Your prediction is locked in. You predicted <span className="text-csk font-semibold">{retained.length} retained</span> and <span className="text-red-400 font-semibold">{released.length} released</span>. Check the leaderboard once results are out.</p>
+    <h3 className="text-xl font-extrabold">You've already submitted.</h3>
+    <p className="text-muted">Predictions can't be changed. See your full prediction and share it.</p>
+    <button className={btn+' bg-csk text-navy'} onClick={goMine}>View My Prediction</button>
    </div>)
  }
  if(closed) return <p className="bg-card rounded-xl p-6">Submissions are closed.</p>
@@ -101,8 +102,8 @@ function Predict({identity,setIdentity,settings,toast}){
   setBusy(false)
   if(error){ toast(error.message); return }
   setConfirm(false)
-  setMine(Object.entries(picks).map(([player_id,decision])=>({player_id,decision,player_name:players.find(p=>p.id===player_id)?.name})))
   toast('Prediction submitted')
+  onSubmitted()
  }
 
  return (
@@ -192,11 +193,17 @@ export default function App(){
  const [tab,setTab] = useState('predict')
  const [identity,setIdentity] = useState(null)
  const [settings,setSettings] = useState(null)
+ const [hasPrediction,setHasPrediction] = useState(false)
+ const [justSubmitted,setJustSubmitted] = useState(false)
  const [msg,setMsg] = useState('')
  const toast = m => { setMsg(m); setTimeout(()=>setMsg(''),3500) }
 
  useEffect(()=>{
-  setIdentity(loadIdentity())
+  const idn = loadIdentity()
+  setIdentity(idn)
+  if(idn?.id) supabase.rpc('get_my_prediction',{p_participant_id:idn.id}).then(({data,error})=>{
+   if(!error && data && data.length){ setHasPrediction(true); setTab('mine') } // returning participant lands on their prediction
+  })
   supabase.from('competition_settings').select('*').single().then(({data})=>setSettings(data))
  },[])
 
@@ -206,7 +213,7 @@ export default function App(){
     <div className="max-w-5xl mx-auto p-3 sm:p-4 flex flex-wrap items-center gap-2 justify-between">
      <h1 className="font-extrabold text-csk text-base sm:text-lg">CSK Retention Predictor 2027</h1>
      <nav className="flex gap-1.5 sm:gap-2 ml-auto">
-      {[['predict','Predict'],['board','Leaderboard']].map(([k,l]) =>
+      {[...(hasPrediction?[['mine','My Prediction']]:[]),['predict','Predict'],['board','Leaderboard']].map(([k,l]) =>
        <button key={k} onClick={()=>setTab(k)} className={btn+' px-3 py-2 text-sm '+(tab===k?'bg-csk text-navy':'text-muted')}>{l}</button>)}
      </nav>
     </div>
@@ -218,7 +225,9 @@ export default function App(){
      {settings && ` Deadline: ${new Date(settings.deadline).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'})} IST.`}
      {identity && ` Playing as ${identity.name}.`}
     </p>
-    {tab==='predict' && <Predict identity={identity} setIdentity={setIdentity} settings={settings} toast={toast}/>}
+    {tab==='mine' && identity && hasPrediction && <MyPrediction identity={identity} settings={settings} toast={toast} justSubmitted={justSubmitted}/>}
+    {tab==='predict' && <Predict identity={identity} setIdentity={setIdentity} settings={settings} toast={toast} hasPrediction={hasPrediction} goMine={()=>setTab('mine')}
+      onSubmitted={()=>{ setHasPrediction(true); setJustSubmitted(true); setTab('mine'); window.scrollTo({top:0}) }}/>}
     {tab==='board' && <Board/>}
    </main>
 

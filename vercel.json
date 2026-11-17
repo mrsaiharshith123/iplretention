@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/cskimg/:path*", "destination": "https://gallery.chennaisuperkings.com/PROD/TEAM/:path*" }
+  ]
+}

@@ -145,5 +145,6 @@ create or replace view leaderboard as
     round(100.0*s.correct/nullif(s.total,0),2) accuracy
   from scores s join participants pt on pt.id = s.participant_id;
 
-alter publication supabase_realtime drop table if exists scores;
+-- The old `scores` table was dropped (cascaded) in step 2 above, which already removes it
+-- from the publication, so we only need to add the newly created one back.
 alter publication supabase_realtime add table scores;

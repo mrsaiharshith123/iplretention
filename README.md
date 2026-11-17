@@ -28,7 +28,7 @@ Players with no `photo_url` show a yellow initial avatar automatically, so addin
 later without a photo yet is safe.
 
 ## Admin tasks (no admin panel in the app — use the Supabase dashboard/SQL editor)
-- Deadline / open-close: `update competition_settings set deadline='2026-11-17 18:59:00+05:30', submissions_open=true;` (or run `supabase/update_deadline.sql`)
+- Deadline / open-close: `update competition_settings set deadline='...', submissions_open=true;`
 - Players: insert/update/delete rows in `players` directly (table editor or SQL).
 - After the official announcement: insert rows into `official_results` (player_id, decision),
   set `competition_settings.results_published=true`, then run `select recalculate_scores();`
@@ -36,3 +36,18 @@ later without a photo yet is safe.
 
 Eligibility: toggle `players.is_active`. Khaleel Ahmed and Nathan Ellis (traded to SRH) are
 seeded inactive.
+
+## My Prediction page + share cards
+- After submitting (and whenever a returning participant opens the site on the same browser) the app shows
+  **My Prediction**, loaded live from Supabase via `get_my_prediction` + the `players` table. It is never
+  rebuilt from the on-screen selection state. After results are published, ✓/✗ badges appear next to picks.
+- **Share**: `src/lib/shareCard.js` draws the cards straight onto a canvas — 4:3 (1600×1200) and
+  Instagram Story (1080×1920, content kept inside the safe areas). Download buttons, plus Web Share API on
+  mobile with a download fallback.
+- Player photos come from CSK's gallery. `vercel.json` (prod) and `vite.config.js` (dev) proxy them through
+  `/cskimg/...` so the canvas can read them. If a photo can't load, an initial avatar is drawn instead.
+- No database migration is needed for this feature.
+
+## Deadline
+Run `supabase/update_deadline_659pm.sql` once in the Supabase SQL editor to set the live deadline to
+17 Nov 2026, 6:59 PM IST. (`schema.sql` is updated for fresh installs.)
