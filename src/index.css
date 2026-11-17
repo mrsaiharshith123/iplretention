@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slideup { from { transform: translateY(16px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+html { -webkit-tap-highlight-color: transparent; }
+body { overflow-x: hidden; }
