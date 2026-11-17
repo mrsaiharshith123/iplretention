@@ -1,6 +1,8 @@
 import {useEffect,useMemo,useState,useCallback} from 'react'
 import {supabase} from './supabase'
 import MyPrediction from './components/MyPrediction'
+import ShareModal from './components/ShareModal'
+import {renderLeaderboard} from './lib/shareCard'
 
 const STORAGE_KEY = 'csk2027_participant'
 const kind = r => /wicket/i.test(r) ? 'Wicketkeeper' : /all/i.test(r) ? 'All-rounder' : /bowl/i.test(r) ? 'Bowler' : 'Batter'
@@ -158,8 +160,8 @@ function Predict({identity,setIdentity,settings,toast,onSubmitted,hasPrediction,
   </div>)
 }
 
-function Board(){
- const [rows,setRows] = useState(null), [n,setN] = useState(20)
+function Board({toast}){
+ const [rows,setRows] = useState(null), [n,setN] = useState(20), [share,setShare] = useState(false)
  const load = useCallback(()=> supabase.from('leaderboard').select('*').order('rank').limit(n).then(({data})=>setRows(data||[])), [n])
  useEffect(()=>{
   load()
@@ -171,6 +173,9 @@ function Board(){
  if(!rows.length) return <p className="bg-card rounded-xl p-6 text-muted">No scores yet. Scores appear once official results are published.</p>
 
  return (
+  <div className="space-y-3">
+   <button className={btn+' w-full bg-csk text-navy font-extrabold'} onClick={()=>setShare(true)}>SHARE LEADERBOARD</button>
+   {share && <ShareModal toast={toast} onClose={()=>setShare(false)} title="Share the leaderboard" fileBase="top10" alt="Leaderboard card" make={fmt=>renderLeaderboard(fmt,rows)}/>}
   <div className="bg-card rounded-xl overflow-x-auto">
    <table className="w-full text-left min-w-[480px]">
     <thead className="text-muted text-sm"><tr><th className="p-3">Rank</th><th>Fan</th><th>Points</th><th>Correct</th><th>Accuracy</th></tr></thead>
@@ -186,7 +191,7 @@ function Board(){
     </tbody>
    </table>
    {rows.length >= n && <button className={btn+' m-3 bg-deep'} onClick={()=>setN(n+20)}>Load more</button>}
-  </div>)
+  </div></div>)
 }
 
 export default function App(){
@@ -228,7 +233,7 @@ export default function App(){
     {tab==='mine' && identity && hasPrediction && <MyPrediction identity={identity} settings={settings} toast={toast} justSubmitted={justSubmitted}/>}
     {tab==='predict' && <Predict identity={identity} setIdentity={setIdentity} settings={settings} toast={toast} hasPrediction={hasPrediction} goMine={()=>setTab('mine')}
       onSubmitted={()=>{ setHasPrediction(true); setJustSubmitted(true); setTab('mine'); window.scrollTo({top:0}) }}/>}
-    {tab==='board' && <Board/>}
+    {tab==='board' && <Board toast={toast}/>}
    </main>
 
    {msg && <div className="fixed top-4 right-4 left-4 sm:left-auto bg-csk text-navy font-semibold rounded-lg px-4 py-2.5 z-50 shadow-lg">{msg}</div>}

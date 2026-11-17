@@ -196,9 +196,73 @@ export async function renderCard(format, data) {
   return blob
 }
 
+
+/** rows = [{rank,name,points,correct,total,accuracy}] (already ordered) */
+function lbRow(ctx, r, x, y, w, h, i) {
+  const top3 = r.rank <= 3
+  ctx.fillStyle = top3 ? 'rgba(249,205,5,0.14)' : 'rgba(18,59,93,0.55)'; rr(ctx, x, y, w, h, h * 0.18); ctx.fill()
+  if (top3) { ctx.fillStyle = CSK; ctx.fillRect(x, y + h * 0.14, 6, h * 0.72) }
+  const bs = h * 0.7, bx = x + 22, by = y + (h - bs) / 2
+  ctx.fillStyle = top3 ? CSK : DEEP; rr(ctx, bx, by, bs, bs, bs * 0.25); ctx.fill()
+  text(ctx, String(r.rank), bx + bs / 2, by + bs / 2 + 1, { size: bs * 0.5, weight: 800, color: top3 ? NAVY : WHITE, align: 'center', base: 'middle' })
+  return { nx: bx + bs + 22 }
+}
+function drawLbLandscape(ctx, rows) {
+  const W = 1600, H = 1200, M = 56
+  bg(ctx, W, H)
+  text(ctx, 'CSK RETENTION PREDICTOR 2027', M, 78, { size: 26, weight: 800, color: CSK, spacing: 4 })
+  text(ctx, 'IPL 2027', W - M, 78, { size: 26, weight: 800, color: CSK, align: 'right', spacing: 4 })
+  text(ctx, 'LEADERBOARD', M, 160, { size: 84, weight: 800 })
+  text(ctx, 'OFFICIAL RESULTS ARE IN', W - M, 160, { size: 32, weight: 800, color: CSK, align: 'right', spacing: 2 })
+  ctx.fillStyle = DEEP; ctx.fillRect(M, 190, W - M * 2, 3)
+  const top = 250, rh = 68, gap = 8, w = W - M * 2
+  text(ctx, 'FAN', M + 120, top - 14, { size: 22, weight: 700, color: MUTED, spacing: 3 })
+  text(ctx, 'CORRECT', W - M - 380, top - 14, { size: 22, weight: 700, color: MUTED, align: 'right', spacing: 3 })
+  text(ctx, 'ACCURACY', W - M - 200, top - 14, { size: 22, weight: 700, color: MUTED, align: 'right', spacing: 3 })
+  text(ctx, 'POINTS', W - M - 24, top - 14, { size: 22, weight: 700, color: MUTED, align: 'right', spacing: 3 })
+  rows.forEach((r, i) => {
+    const y = top + i * (rh + gap), { nx } = lbRow(ctx, r, M, y, w, rh, i)
+    text(ctx, r.name, nx, y + rh / 2 + 2, { size: 34, weight: 800, base: 'middle', maxW: W - M - 430 - nx })
+    text(ctx, `${r.correct}/${r.total}`, W - M - 380, y + rh / 2 + 2, { size: 30, weight: 700, color: MUTED, align: 'right', base: 'middle' })
+    text(ctx, `${r.accuracy}%`, W - M - 200, y + rh / 2 + 2, { size: 30, weight: 700, color: MUTED, align: 'right', base: 'middle' })
+    text(ctx, String(r.points), W - M - 24, y + rh / 2 + 2, { size: 42, weight: 800, color: r.rank <= 3 ? CSK : WHITE, align: 'right', base: 'middle' })
+  })
+  const fy = 1055
+  ctx.fillStyle = DEEP; ctx.fillRect(M, fy, W - M * 2, 3)
+  text(ctx, 'WHERE DO YOU STAND?', M, fy + 70, { size: 40, weight: 800, color: CSK })
+  text(ctx, SITE_LABEL, W - M, fy + 70, { size: 30, weight: 700, align: 'right', maxW: 700 })
+  text(ctx, 'Fan-made. Not an official CSK or IPL product.', W / 2, H - 26, { size: 18, weight: 600, color: MUTED, align: 'center' })
+}
+function drawLbStory(ctx, rows) {
+  const W = 1080, H = 1920, M = 52, SAFE_T = 250, SAFE_B = H - 270
+  bg(ctx, W, H)
+  text(ctx, 'CSK RETENTION PREDICTOR 2027  ·  IPL 2027', W / 2, SAFE_T + 14, { size: 25, weight: 800, color: CSK, align: 'center', spacing: 2, maxW: W - M * 2 })
+  text(ctx, 'LEADERBOARD', W / 2, SAFE_T + 92, { size: 78, weight: 800, align: 'center' })
+  text(ctx, 'OFFICIAL RESULTS ARE IN', W / 2, SAFE_T + 140, { size: 28, weight: 800, color: CSK, align: 'center', spacing: 2 })
+  const top = SAFE_T + 180, footH = 150, n = Math.max(1, rows.length), gap = 10
+  const rh = Math.min(104, Math.floor((SAFE_B - footH - top - gap * (n - 1)) / n)), w = W - M * 2
+  rows.forEach((r, i) => {
+    const y = top + i * (rh + gap), { nx } = lbRow(ctx, r, M, y, w, rh, i)
+    text(ctx, r.name, nx, y + rh * 0.42, { size: rh * 0.34, weight: 800, base: 'middle', maxW: W - M - 190 - nx })
+    text(ctx, `${r.correct}/${r.total} correct · ${r.accuracy}%`, nx, y + rh * 0.74, { size: rh * 0.22, weight: 600, color: MUTED, base: 'middle', maxW: W - M - 190 - nx })
+    text(ctx, String(r.points), W - M - 24, y + rh / 2 + 2, { size: rh * 0.46, weight: 800, color: r.rank <= 3 ? CSK : WHITE, align: 'right', base: 'middle' })
+  })
+  ctx.fillStyle = DEEP; ctx.fillRect(M, SAFE_B - footH + 20, W - M * 2, 3)
+  text(ctx, 'WHERE DO YOU STAND?', W / 2, SAFE_B - 30, { size: 36, weight: 800, color: CSK, align: 'center' })
+  text(ctx, SITE_LABEL, W / 2, SAFE_B + 14, { size: 26, weight: 700, align: 'center', maxW: W - M * 2 })
+}
+export async function renderLeaderboard(format, rows) {
+  const f = FORMATS[format]
+  try { await Promise.all(['400', '600', '700', '800'].map(w => document.fonts.load(`${w} 24px Manrope`))); await document.fonts.ready } catch { /* system font fallback */ }
+  const canvas = document.createElement('canvas'); canvas.width = f.w; canvas.height = f.h
+  const ctx = canvas.getContext('2d'); ctx.imageSmoothingQuality = 'high'
+  ;(format === 'story' ? drawLbStory : drawLbLandscape)(ctx, rows.slice(0, 10))
+  return new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Image generation failed')), 'image/png'))
+}
+
 export function fileName(format, name) {
   const slug = (name || 'fan').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'fan'
-  return `csk-prediction-${slug}-${FORMATS[format].file}.png`
+  return `csk-${slug}-${FORMATS[format].file}.png`
 }
 export function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob), a = document.createElement('a')
